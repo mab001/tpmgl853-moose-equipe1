@@ -24,7 +24,7 @@ modelFile exists ifFalse: [
 ].
 
 modelFile exists ifFalse: [
-    Transcript show: 'ERROR: model.json not found!'; cr.
+    Transcript show: 'ERROR: model.json not found'; cr.
     ^ self error: 'model.json not found'.
 ].
 
