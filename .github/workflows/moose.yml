@@ -34,7 +34,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.smalltalkCI
-          key: moose64-12-${{ runner.os }}
+          key: moose64-12-v2-${{ runner.os }}
+
+      - name: Clean stale image before setup
+        run: rm -rf ~/.smalltalkCI/_builds
 
       - name: Installer smalltalkCI (image Moose)
         uses: hpi-swa/setup-smalltalkCI@v1
