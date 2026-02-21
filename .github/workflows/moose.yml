@@ -30,6 +30,12 @@ jobs:
           fi
           echo "✅ model.json found ($(wc -c < model.json) bytes)"
 
+      - name: Cache Pharo/Moose image and VM
+        uses: actions/cache@v4
+        with:
+          path: ~/.smalltalkCI
+          key: moose64-12-${{ runner.os }}
+
       - name: Installer smalltalkCI (image Moose)
         uses: hpi-swa/setup-smalltalkCI@v1
         with:
