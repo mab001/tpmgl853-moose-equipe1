@@ -81,59 +81,6 @@ MetricsExporter compile: 'printSummary
     classified: 'printing'.
 !
 
-MetricsExporter compile: 'generateBarChart: aTitle data: aCollection labelKey: lKey valueKey: vKey fileName: aFileName
-    | canvas chart plot labels values maxVal |
-    labels := aCollection collect: [ :d | d at: lKey ].
-    values := aCollection collect: [ :d | d at: vKey ].
-    maxVal := values max.
-
-    canvas := RSCanvas new.
-
-    chart := RSChart new.
-    chart container: canvas.
-    chart title: aTitle.
-
-    plot := RSBarPlot new.
-    plot y: values.
-    chart addPlot: plot.
-
-    chart addDecoration: (RSVerticalTick new).
-    chart addDecoration: (RSHorizontalTick new
-        fromNames: labels;
-        useDiagonalLabel).
-
-    chart build.
-    canvas extent: 800@500.
-
-    RSPNGExporter new
-        canvas: canvas;
-        exportToFile: aFileName asFileReference.
-
-    Transcript show: ''Chart exported: '', aFileName; cr.'
-    classified: 'visualization'.
-!
-
-MetricsExporter compile: 'generateAllCharts
-    | metrics |
-    metrics := self allMetrics.
-    Transcript show: ''=== Generating Roassal Charts ===''; cr.
-
-    self generateBarChart: ''Methods per Class''
-         data: metrics labelKey: ''name'' valueKey: ''methods''
-         fileName: ''./chart_methods.png''.
-
-    self generateBarChart: ''Attributes per Class''
-         data: metrics labelKey: ''name'' valueKey: ''attributes''
-         fileName: ''./chart_attributes.png''.
-
-    self generateBarChart: ''Lines of Code per Class''
-         data: metrics labelKey: ''name'' valueKey: ''loc''
-         fileName: ''./chart_loc.png''.
-
-    Transcript show: ''All charts generated.''; cr.'
-    classified: 'visualization'.
-!
-
 "============================================================"
 "--- 3. Utiliser la classe MetricsExporter ---"
 "============================================================"
@@ -152,5 +99,4 @@ exporter := MetricsExporter new.
 exporter loadModelFrom: modelFile.
 exporter exportToCsv: './export_metrics.csv'.
 exporter printSummary.
-exporter generateAllCharts.
 !
