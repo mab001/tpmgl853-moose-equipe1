@@ -1,0 +1,17 @@
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'FamixTypeScript',
+      #repository : 'github://fuhrmanator/FamixTypeScript:master/src',
+      #platforms : [ #pharo ],
+      #onConflict : #useIncoming,
+      #onUpgrade : #useIncoming
+    }
+  ],
+  #testing : {
+    #failOnZeroTests : false
+  },
+  #preTesting : SCICustomScript {
+    #path : 'pharo-metrics-export.st'
+  }
+}

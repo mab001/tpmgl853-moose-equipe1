@@ -1,0 +1,56 @@
+# =============================================================================
+# Pipeline CI — Analyse Pharo/Moose d'un projet TypeScript
+# =============================================================================
+# Ce pipeline charge model.json dans Moose et exporte les métriques en CSV.
+# Prérequis : model.json doit être commité dans le repo (copié depuis tp-mgl843).
+# =============================================================================
+
+name: Moose - Export Metrics
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  moose-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Vérifier que model.json existe
+        run: |
+          if [ ! -f model.json ]; then
+            echo "❌ model.json not found! Copy it from tp-mgl843 artifacts first."
+            exit 1
+          fi
+          echo "✅ model.json found ($(wc -c < model.json) bytes)"
+
+      - name: Installer smalltalkCI (image Moose)
+        uses: hpi-swa/setup-smalltalkCI@v1
+        with:
+          smalltalk-image: Moose64-12
+
+      - name: Charger FamixTypeScript et exporter les métriques
+        run: smalltalkci -s Moose64-12 .smalltalk.ston
+        timeout-minutes: 20
+
+      - name: Afficher le CSV exporté
+        run: |
+          echo "=== Contenu de export_metrics.csv ==="
+          cat export_metrics.csv
+          echo ""
+          echo "Nombre de lignes: $(wc -l < export_metrics.csv)"
+
+      - name: Sauvegarder les résultats (artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultats-analyse
+          path: |
+            export_metrics.csv
+            model.json
+          retention-days: 30
