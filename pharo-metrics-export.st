@@ -1,97 +1,77 @@
 "============================================================"
-"Script Pharo - Export des métriques de qualité en CSV"
-"============================================================"
-"Ce script est exécuté dans une image Moose par smalltalkCI."
-"Il effectue 3 étapes :"
-"  1. Charger le modèle Famix (model.json) généré par ts2famix"
-"  2. Extraire les métriques de chaque classe (NOM, NOA, LOC)"
-"  3. Écrire les résultats dans export_metrics.csv"
+"Script Pharo - Export des metriques de qualite en CSV"
 "============================================================"
 
-| modelFile model classes stream writer |
+| modelFile model classes stream csvLine |
 
-"--- 1. Localiser le fichier model.json ---"
-"On cherche d'abord dans le répertoire courant,"
-"puis dans GITHUB_WORKSPACE si on est en CI."
+"--- 1. Localiser model.json ---"
 modelFile := './model.json' asFileReference.
-
 modelFile exists ifFalse: [
     | wsPath |
-    wsPath := (Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ]).
+    wsPath := Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ].
     modelFile := (wsPath , '/model.json') asFileReference.
 ].
 
 Transcript show: '=== Moose Metrics Export ==='; cr.
-Transcript show: 'Model file: ', modelFile fullName; cr.
+Transcript show: 'Looking for: ', modelFile fullName; cr.
 Transcript show: 'Exists: ', modelFile exists printString; cr.
 
 modelFile exists ifFalse: [
-    Transcript show: '❌ model.json introuvable!'; cr.
-    self error: 'model.json not found at: ', modelFile fullName.
+    "Try current working directory"
+    modelFile := FileLocator workingDirectory / 'model.json'.
+    Transcript show: 'Trying: ', modelFile fullName; cr.
+    Transcript show: 'Exists: ', modelFile exists printString; cr.
 ].
 
-"--- 2. Charger le modèle dans Moose ---"
-Transcript show: 'Chargement du modèle...'; cr.
+modelFile exists ifFalse: [
+    Transcript show: 'ERROR: model.json not found!'; cr.
+    ^ self error: 'model.json not found'.
+].
 
+"--- 2. Charger le modele dans Moose ---"
+Transcript show: 'Loading model...'; cr.
+
+model := FamixTypeScriptModel new.
 modelFile readStreamDo: [ :readStream |
-    model := FamixTypeScriptModel new importFromJSONStream: readStream.
-    model install.
+    model importFromJSONStream: readStream.
 ].
+model install.
 
-Transcript show: 'Modèle chargé avec succès.'; cr.
+Transcript show: 'Model loaded.'; cr.
 
-"--- 3. Extraire les métriques et écrire le CSV ---"
-classes := model allModelClasses.
-Transcript show: 'Nombre de classes trouvées: ', classes size printString; cr.
+"--- 3. Extraire les metriques ---"
+classes := model allWithType: FamixTypeScriptClass.
+Transcript show: 'Classes found: ', classes size printString; cr.
 
-"Créer le fichier CSV avec séparateur ;"
+"Ecrire le CSV sans NeoCSVWriter (simple stream)"
 stream := './export_metrics.csv' asFileReference writeStream.
-writer := NeoCSVWriter on: stream.
-writer separator: $;.
 
-"En-tête"
-writer nextPut: #( 'Nom_Classe' 'Nb_Methodes' 'Nb_Attributs' 'Lignes_de_Code' ).
+"En-tete"
+stream nextPutAll: 'Nom_Classe;Nb_Methodes;Nb_Attributs;Lignes_de_Code'.
+stream cr.
 
 "Parcourir chaque classe"
 classes do: [ :each |
-    | loc anchor srcFile content snippet |
-    loc := 0.
+    | nom nbMethods nbAttrs loc |
+    nom := each name.
+    nbMethods := each methods size.
+    nbAttrs := each attributes size.
 
-    "Essayer de calculer LOC depuis le fichier source"
-    anchor := each sourceAnchor.
-    (anchor notNil and: [ anchor isKindOf: FamixTypeScriptIndexedFileAnchor ]) ifTrue: [
-        [ 
-            srcFile := anchor fileName asFileReference.
-            srcFile exists ifTrue: [
-                content := srcFile contents.
-                snippet := content copyFrom: anchor startPos to: (anchor endPos min: content size).
-                loc := snippet lineCount.
-            ].
-        ] on: Error do: [ :e |
-            Transcript show: '  ⚠ LOC error for ', each name, ': ', e messageText; cr.
-        ].
+    "Calculer LOC: sommer les LOC des methodes"
+    loc := each methods inject: 0 into: [ :sum :m |
+        sum + ([ m numberOfLinesOfCode ifNil: [ 0 ] ] on: Error do: [ :e | 0 ])
     ].
 
-    "Fallback : sommer les LOC des méthodes"
-    loc = 0 ifTrue: [
-        loc := each methods inject: 0 into: [ :sum :m | 
-            sum + (m numberOfLinesOfCode ifNil: [ 0 ]) 
-        ].
-    ].
+    Transcript show: '  ', nom,
+        ' | methods: ', nbMethods printString,
+        ' | attrs: ', nbAttrs printString,
+        ' | loc: ', loc printString; cr.
 
-    Transcript show: '  ', each name, 
-        ' | methods:', each numberOfMethods printString,
-        ' | attrs:', each numberOfAttributes printString,
-        ' | loc:', loc printString; cr.
-
-    writer nextPut: {
-        each name.
-        each numberOfMethods.
-        each numberOfAttributes.
-        loc.
-    }.
+    csvLine := nom , ';' , nbMethods printString , ';' , nbAttrs printString , ';' , loc printString.
+    stream nextPutAll: csvLine.
+    stream cr.
 ].
 
 stream close.
 
-Transcript show: '✅ Export terminé: export_metrics.csv'; cr.
+Transcript show: 'Export complete: export_metrics.csv'; cr.

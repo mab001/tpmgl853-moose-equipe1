@@ -36,8 +36,15 @@ jobs:
           smalltalk-image: Moose64-12
 
       - name: Charger FamixTypeScript et exporter les métriques
-        run: smalltalkci -s Moose64-12 .smalltalk.ston
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          ls -la
+          echo "=== Running smalltalkCI ==="
+          smalltalkci -s Moose64-12 .smalltalk.ston
         timeout-minutes: 20
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
 
       - name: Afficher le CSV exporté
         run: |
