@@ -2,17 +2,17 @@
 "Script Pharo - Export des metriques de qualite en CSV"
 "Definit la classe MetricsExporter puis l utilise"
 "============================================================"
+!
 
 "--- 1. Definir la classe MetricsExporter ---"
 Object subclass: #MetricsExporter
     instanceVariableNames: 'model classes'
     classVariableNames: ''
     package: 'MGL843-Metrics'.
+!
 
 "--- 2. Compiler les methodes ---"
-
 MetricsExporter compile: 'loadModelFrom: aFileReference
-    "Charge un modele FamixTypeScript depuis un fichier JSON"
     model := FamixTypeScriptModel new.
     aFileReference readStreamDo: [ :readStream |
         model importFromJSONStream: readStream.
@@ -21,9 +21,9 @@ MetricsExporter compile: 'loadModelFrom: aFileReference
     classes := model allWithType: FamixTypeScriptClass.
     Transcript show: ''Model loaded: '', classes size printString, '' classes found.''; cr.'
     classified: 'loading'.
+!
 
 MetricsExporter compile: 'computeMetricsForClass: aClass
-    "Retourne un dictionnaire de metriques pour une classe donnee"
     | nbMethods nbAttrs loc |
     nbMethods := aClass methods size.
     nbAttrs := aClass attributes size.
@@ -37,14 +37,14 @@ MetricsExporter compile: 'computeMetricsForClass: aClass
         at: ''loc'' put: loc;
         yourself.'
     classified: 'metrics'.
+!
 
 MetricsExporter compile: 'allMetrics
-    "Retourne une collection de dictionnaires de metriques pour toutes les classes"
     ^ classes collect: [ :each | self computeMetricsForClass: each ].'
     classified: 'metrics'.
+!
 
 MetricsExporter compile: 'exportToCsv: aFilePath
-    "Exporte les metriques au format CSV dans le fichier indique"
     | stream metrics |
     metrics := self allMetrics.
     stream := aFilePath asFileReference writeStream.
@@ -66,9 +66,9 @@ MetricsExporter compile: 'exportToCsv: aFilePath
     stream close.
     Transcript show: ''Export complete: '', aFilePath; cr.'
     classified: 'export'.
+!
 
 MetricsExporter compile: 'printSummary
-    "Affiche un resume des metriques dans le Transcript"
     | metrics totalClasses totalMethods totalLoc |
     metrics := self allMetrics.
     totalClasses := metrics size.
@@ -79,32 +79,24 @@ MetricsExporter compile: 'printSummary
     Transcript show: ''Total methods: '', totalMethods printString; cr.
     Transcript show: ''Total LOC: '', totalLoc printString; cr.'
     classified: 'printing'.
+!
 
 "============================================================"
 "--- 3. Utiliser la classe MetricsExporter ---"
 "============================================================"
-
-| modelFile exporter |
-
-"Localiser model.json"
+| modelFile exporter wsPath |
 modelFile := './model.json' asFileReference.
 modelFile exists ifFalse: [
-    | wsPath |
     wsPath := Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ].
     modelFile := (wsPath , '/model.json') asFileReference.
 ].
 modelFile exists ifFalse: [
     modelFile := FileLocator workingDirectory / 'model.json'.
 ].
-modelFile exists ifFalse: [
-    self error: 'model.json not found'.
-].
-
 Transcript show: '=== MGL843 Moose Metrics Export ==='; cr.
 Transcript show: 'Model file: ', modelFile fullName; cr.
-
-"Instancier et utiliser la classe"
 exporter := MetricsExporter new.
 exporter loadModelFrom: modelFile.
 exporter exportToCsv: './export_metrics.csv'.
 exporter printSummary.
+!
