@@ -1,77 +1,110 @@
 "============================================================"
 "Script Pharo - Export des metriques de qualite en CSV"
+"Utilise la classe MetricsExporter (definie ci-dessous)"
 "============================================================"
 
-| modelFile model classes stream csvLine |
+"--- 1. Definir la classe MetricsExporter ---"
+Object subclass: #MetricsExporter
+    instanceVariableNames: 'model classes'
+    classVariableNames: ''
+    package: 'MGL843-Metrics'.
 
-"--- 1. Localiser model.json ---"
+"--- Methodes d instance ---"
+
+MetricsExporter >> loadModelFrom: aFileReference [
+    "Charge un modele FamixTypeScript depuis un fichier JSON"
+    model := FamixTypeScriptModel new.
+    aFileReference readStreamDo: [ :readStream |
+        model importFromJSONStream: readStream.
+    ].
+    model install.
+    classes := model allWithType: FamixTypeScriptClass.
+    Transcript show: 'Model loaded: ', classes size printString, ' classes found.'; cr.
+].
+
+MetricsExporter >> computeMetricsForClass: aClass [
+    "Retourne un dictionnaire de metriques pour une classe donnee"
+    | nbMethods nbAttrs loc |
+    nbMethods := aClass methods size.
+    nbAttrs := aClass attributes size.
+    loc := aClass methods inject: 0 into: [ :sum :m |
+        sum + ([ m numberOfLinesOfCode ifNil: [ 0 ] ] on: Error do: [ :e | 0 ])
+    ].
+    ^ Dictionary new
+        at: 'name' put: aClass name;
+        at: 'methods' put: nbMethods;
+        at: 'attributes' put: nbAttrs;
+        at: 'loc' put: loc;
+        yourself.
+].
+
+MetricsExporter >> allMetrics [
+    "Retourne une collection de dictionnaires de metriques pour toutes les classes"
+    ^ classes collect: [ :each | self computeMetricsForClass: each ].
+].
+
+MetricsExporter >> exportToCsv: aFilePath [
+    "Exporte les metriques au format CSV dans le fichier indique"
+    | stream metrics |
+    metrics := self allMetrics.
+    stream := aFilePath asFileReference writeStream.
+    stream nextPutAll: 'Nom_Classe;Nb_Methodes;Nb_Attributs;Lignes_de_Code'.
+    stream cr.
+    metrics do: [ :dict |
+        | line |
+        line := (dict at: 'name') , ';' ,
+                (dict at: 'methods') printString , ';' ,
+                (dict at: 'attributes') printString , ';' ,
+                (dict at: 'loc') printString.
+        stream nextPutAll: line.
+        stream cr.
+        Transcript show: '  ', (dict at: 'name'),
+            ' | methods: ', (dict at: 'methods') printString,
+            ' | attrs: ', (dict at: 'attributes') printString,
+            ' | loc: ', (dict at: 'loc') printString; cr.
+    ].
+    stream close.
+    Transcript show: 'Export complete: ', aFilePath; cr.
+].
+
+MetricsExporter >> printSummary [
+    "Affiche un resume des metriques dans le Transcript"
+    | metrics totalClasses totalMethods totalLoc |
+    metrics := self allMetrics.
+    totalClasses := metrics size.
+    totalMethods := metrics inject: 0 into: [ :sum :d | sum + (d at: 'methods') ].
+    totalLoc := metrics inject: 0 into: [ :sum :d | sum + (d at: 'loc') ].
+    Transcript show: '=== Summary ==='; cr.
+    Transcript show: 'Total classes: ', totalClasses printString; cr.
+    Transcript show: 'Total methods: ', totalMethods printString; cr.
+    Transcript show: 'Total LOC: ', totalLoc printString; cr.
+].
+
+"============================================================"
+"--- 2. Utiliser la classe MetricsExporter ---"
+"============================================================"
+
+| modelFile exporter |
+
+"Localiser model.json"
 modelFile := './model.json' asFileReference.
 modelFile exists ifFalse: [
     | wsPath |
     wsPath := Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ].
     modelFile := (wsPath , '/model.json') asFileReference.
 ].
-
-Transcript show: '=== Moose Metrics Export ==='; cr.
-Transcript show: 'Looking for: ', modelFile fullName; cr.
-Transcript show: 'Exists: ', modelFile exists printString; cr.
-
 modelFile exists ifFalse: [
-    "Try current working directory"
     modelFile := FileLocator workingDirectory / 'model.json'.
-    Transcript show: 'Trying: ', modelFile fullName; cr.
-    Transcript show: 'Exists: ', modelFile exists printString; cr.
 ].
-
 modelFile exists ifFalse: [
-    Transcript show: 'ERROR: model.json not found'; cr.
     ^ self error: 'model.json not found'.
 ].
 
-"--- 2. Charger le modele dans Moose ---"
-Transcript show: 'Loading model...'; cr.
+Transcript show: '=== MGL843 Moose Metrics Export ==='; cr.
+Transcript show: 'Model file: ', modelFile fullName; cr.
 
-model := FamixTypeScriptModel new.
-modelFile readStreamDo: [ :readStream |
-    model importFromJSONStream: readStream.
-].
-model install.
-
-Transcript show: 'Model loaded.'; cr.
-
-"--- 3. Extraire les metriques ---"
-classes := model allWithType: FamixTypeScriptClass.
-Transcript show: 'Classes found: ', classes size printString; cr.
-
-"Ecrire le CSV sans NeoCSVWriter (simple stream)"
-stream := './export_metrics.csv' asFileReference writeStream.
-
-"En-tete"
-stream nextPutAll: 'Nom_Classe;Nb_Methodes;Nb_Attributs;Lignes_de_Code'.
-stream cr.
-
-"Parcourir chaque classe"
-classes do: [ :each |
-    | nom nbMethods nbAttrs loc |
-    nom := each name.
-    nbMethods := each methods size.
-    nbAttrs := each attributes size.
-
-    "Calculer LOC: sommer les LOC des methodes"
-    loc := each methods inject: 0 into: [ :sum :m |
-        sum + ([ m numberOfLinesOfCode ifNil: [ 0 ] ] on: Error do: [ :e | 0 ])
-    ].
-
-    Transcript show: '  ', nom,
-        ' | methods: ', nbMethods printString,
-        ' | attrs: ', nbAttrs printString,
-        ' | loc: ', loc printString; cr.
-
-    csvLine := nom , ';' , nbMethods printString , ';' , nbAttrs printString , ';' , loc printString.
-    stream nextPutAll: csvLine.
-    stream cr.
-].
-
-stream close.
-
-Transcript show: 'Export complete: export_metrics.csv'; cr.
+"Instancier et utiliser la classe"
+exporter := MetricsExporter new.
+exporter loadModelFrom: modelFile.
+exporter exportToCsv: './export_metrics.csv'.
+exporter printSummary.
