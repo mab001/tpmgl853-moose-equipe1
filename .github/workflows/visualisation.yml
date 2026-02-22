@@ -4,11 +4,10 @@ on:
   push:
     branches:
       - "**"  # Trigger on all branches
-    # Workflow runs on EVERY commit, including:
-    # - IML file changes
-    # - CSV data changes
-    # - Visualisation.py script changes
-    # - Any other file changes
+    paths:
+      - 'python-visualisations/**'
+      - '.github/workflows/visualisation.yml'
+      - 'export_metrics.csv'
   workflow_dispatch:
 
 jobs:
