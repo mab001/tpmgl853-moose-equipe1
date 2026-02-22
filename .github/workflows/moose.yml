@@ -44,6 +44,11 @@ jobs:
         with:
           smalltalk-image: Moose64-12
 
+      - name: Clean stale CSV before analysis
+        run: |
+          rm -f export_metrics.csv
+          echo "✅ Stale CSV removed"
+
       - name: Charger FamixTypeScript et exporter les métriques
         run: |
           echo "=== Current directory ==="
