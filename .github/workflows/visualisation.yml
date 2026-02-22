@@ -33,7 +33,7 @@ jobs:
       
       - name: Copy CSV to visualisation directory
         run: |
-          cp classes_export.csv python-visualisations/
+          cp export_metrics.csv python-visualisations/
       
       - name: Run visualisation script
         run: |
