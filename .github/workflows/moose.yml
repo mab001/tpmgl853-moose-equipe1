@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.smalltalkCI
-          key: moose64-12-v2-${{ runner.os }}
+          key: moose64-12-v3-${{ runner.os }}
 
       - name: Clean stale image before setup
         run: rm -rf ~/.smalltalkCI/_builds
