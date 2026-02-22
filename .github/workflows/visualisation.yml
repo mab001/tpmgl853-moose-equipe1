@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - master
-      - 'copilot/**'  # Allow testing on feature branches
+      - visuPipeline
     # Workflow runs on EVERY commit, including:
     # - IML file changes
     # - CSV data changes
