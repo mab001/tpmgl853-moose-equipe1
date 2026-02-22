@@ -3,9 +3,7 @@ name: Generate Visualizations
 on:
   push:
     branches:
-      - main
-      - master
-      - visuPipeline
+      - "**"  # Trigger on all branches
     # Workflow runs on EVERY commit, including:
     # - IML file changes
     # - CSV data changes
