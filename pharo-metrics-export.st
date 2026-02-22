@@ -87,8 +87,6 @@ MetricsExporter compile: 'printSummary
 "--- 3. Utiliser la classe MetricsExporter ---"
 "============================================================"
 | modelFile exporter wsPath |
-"Clear any cached models first"
-MooseModel resetCaches.
 "Now load the updated model"
 modelFile := './tp2-notes-app.json' asFileReference.
 modelFile exists ifFalse: [
