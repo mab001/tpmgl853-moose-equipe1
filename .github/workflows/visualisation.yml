@@ -1,0 +1,92 @@
+name: Generate Visualizations
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'copilot/**'  # Allow testing on feature branches
+    # Workflow runs on EVERY commit, including:
+    # - IML file changes
+    # - CSV data changes
+    # - Visualisation.py script changes
+    # - Any other file changes
+  workflow_dispatch:
+
+jobs:
+  generate-visualizations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r python-visualisations/requirements.txt
+      
+      - name: Copy CSV to visualisation directory
+        run: |
+          cp classes_export.csv python-visualisations/
+      
+      - name: Run visualization script
+        run: |
+          cd python-visualisations
+          python Visualisation.py
+      
+      - name: Ensure images directory exists
+        run: |
+          mkdir -p images
+          echo "✓ Images directory ready"
+      
+      - name: Copy generated files to images folder
+        run: |
+          if ls python-visualisations/*.png 1> /dev/null 2>&1; then
+            mkdir -p images/tp2 && cp -f python-visualisations/*.png images/tp2/
+            echo "✓ PNG files copied to images/tp2/ (overwriting if exists)"
+            ls -lh images/tp2/*.png | grep -E "(graphique_|Figure_)" | wc -l | xargs echo "  Copied PNG files:"
+          else
+            echo "⚠ No PNG files found"
+          fi
+          if ls python-visualisations/*.svg 1> /dev/null 2>&1; then
+            cp -f python-visualisations/*.svg images/tp2/
+            echo "✓ SVG files copied to images/tp2/ (overwriting if exists)"
+            ls -lh images/tp2/*.svg | grep -E "(graphique_|Figure_)" | wc -l | xargs echo "  Copied SVG files:"
+          else
+            echo "⚠ No SVG files found"
+          fi
+      
+      - name: Commit and push generated files
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          echo "Files to be staged:"
+          ls images/tp2/graphique_*.png images/tp2/graphique_*.svg images/tp2/Figure_*.png images/tp2/Figure_*.svg 2>/dev/null || echo "No files match pattern"
+          
+          git add images/tp2/graphique_*.png images/tp2/graphique_*.svg images/tp2/Figure_*.png images/tp2/Figure_*.svg
+          
+          echo ""
+          echo "Git status after staging:"
+          git status --short
+          
+          if git diff --staged --quiet; then
+            echo ""
+            echo "ℹ No changes to commit (images unchanged)"
+          else
+            echo ""
+            echo "✓ Changes detected, committing..."
+            git commit -m "Auto-generate visualization charts [skip ci]"
+            echo "✓ Pushing to repository..."
+            git push
+            echo "✓ Successfully pushed updated visualizations"
+          fi
