@@ -40,7 +40,9 @@ MetricsExporter compile: 'computeMetricsForClass: aClass
 !
 
 MetricsExporter compile: 'allMetrics
-    ^ classes collect: [ :each | self computeMetricsForClass: each ].'
+    | filtered |
+    filtered := classes select: [ :each | each name ~= ''Person'' ].
+    ^ filtered collect: [ :each | self computeMetricsForClass: each ].'
     classified: 'metrics'.
 !
 
@@ -85,6 +87,9 @@ MetricsExporter compile: 'printSummary
 "--- 3. Utiliser la classe MetricsExporter ---"
 "============================================================"
 | modelFile exporter wsPath |
+"Clear any cached models first"
+MooseModel resetCaches.
+"Now load the updated model"
 modelFile := './tp2-notes-app.json' asFileReference.
 modelFile exists ifFalse: [
     wsPath := Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ].
