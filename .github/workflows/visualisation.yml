@@ -1,4 +1,4 @@
-name: Generate Visualizations
+name: Generate visualisations
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  generate-visualizations:
+  generate-visualisations:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -35,7 +35,7 @@ jobs:
         run: |
           cp classes_export.csv python-visualisations/
       
-      - name: Run visualization script
+      - name: Run visualisation script
         run: |
           cd python-visualisations
           python Visualisation.py
@@ -82,8 +82,8 @@ jobs:
           else
             echo ""
             echo "✓ Changes detected, committing..."
-            git commit -m "Auto-generate visualization charts [skip ci]"
+            git commit -m "Auto-generate visualisation charts [skip ci]"
             echo "✓ Pushing to repository..."
             git push
-            echo "✓ Successfully pushed updated visualizations"
+            echo "✓ Successfully pushed updated visualisations"
           fi
