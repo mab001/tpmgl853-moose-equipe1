@@ -5,7 +5,7 @@ import numpy as np
 
 
 # Lire le fichier CSV
-df = pd.read_csv('classes_export.csv')
+df = pd.read_csv('export_metrics.csv')
 
 # Afficher les 10 premières lignes
 print(df.head(10))
