@@ -1,8 +1,8 @@
 # =============================================================================
 # Pipeline CI — Analyse Pharo/Moose d'un projet TypeScript
 # =============================================================================
-# Ce pipeline charge model.json dans Moose et exporte les métriques en CSV.
-# Prérequis : model.json doit être commité dans le repo (copié depuis tp-mgl843).
+# Ce pipeline charge tp2-notes-app.json dans Moose et exporte les métriques en CSV.
+# Prérequis : tp2-notes-app.json doit être commité dans le repo (copié depuis tp-mgl843).
 # =============================================================================
 
 name: Moose - Export Metrics
@@ -22,13 +22,13 @@ jobs:
       - name: Checkout du dépôt
         uses: actions/checkout@v4
 
-      - name: Vérifier que model.json existe
+      - name: Vérifier que tp2-notes-app.json existe
         run: |
-          if [ ! -f model.json ]; then
-            echo "❌ model.json not found! Copy it from tp-mgl843 artifacts first."
+          if [ ! -f tp2-notes-app.json ]; then
+            echo "❌ tp2-notes-app.json not found! Copy it from tp-mgl843 artifacts first."
             exit 1
           fi
-          echo "✅ model.json found ($(wc -c < model.json) bytes)"
+          echo "✅ tp2-notes-app.json found ($(wc -c < tp2-notes-app.json) bytes)"
 
       - name: Cache Pharo/Moose image and VM
         uses: actions/cache@v4
@@ -80,6 +80,6 @@ jobs:
           name: resultats-analyse
           path: |
             export_metrics.csv
-            model.json
+            tp2-notes-app.json
             graphique_*.png
           retention-days: 30

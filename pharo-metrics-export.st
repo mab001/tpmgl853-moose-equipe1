@@ -85,13 +85,13 @@ MetricsExporter compile: 'printSummary
 "--- 3. Utiliser la classe MetricsExporter ---"
 "============================================================"
 | modelFile exporter wsPath |
-modelFile := './model.json' asFileReference.
+modelFile := './tp2-notes-app.json' asFileReference.
 modelFile exists ifFalse: [
     wsPath := Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ].
-    modelFile := (wsPath , '/model.json') asFileReference.
+    modelFile := (wsPath , '/tp2-notes-app.json') asFileReference.
 ].
 modelFile exists ifFalse: [
-    modelFile := FileLocator workingDirectory / 'model.json'.
+    modelFile := FileLocator workingDirectory / 'tp2-notes-app.json'.
 ].
 Transcript show: '=== MGL843 Moose Metrics Export ==='; cr.
 Transcript show: 'Model file: ', modelFile fullName; cr.
