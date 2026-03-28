@@ -61,23 +61,25 @@ MetricsExporter compile: 'exportToCsv: aFilePath
     stream nextPutAll: ''Nom_Classe;Nb_Methodes;Nb_Attributs;Lignes_de_Code;CC_Total;CC_Avg;LOC_NOM''.
     stream cr.
     metrics do: [ :dict |
-        | line ccAvg locNom |
+        | line ccAvg locNom ccAvgStr locNomStr |
         ccAvg := [ dict at: ''cc_avg'' ] on: Error do: [ :e | 0 ].
         locNom := [ dict at: ''loc_nom'' ] on: Error do: [ :e | 0 ].
+        ccAvgStr := (ccAvg asFloat round: 2) asString.
+        locNomStr := (locNom asFloat round: 2) asString.
         line := (dict at: ''name'') , '';'' ,
                 (dict at: ''methods'') printString , '';'' ,
                 (dict at: ''attributes'') printString , '';'' ,
                 (dict at: ''loc'') printString , '';'' ,
                 (dict at: ''cc_total'') printString , '';'' ,
-                (ccAvg printString: 2) , '';'' ,
-                (locNom printString: 2).
+                ccAvgStr , '';'' ,
+                locNomStr.
         stream nextPutAll: line.
         stream cr.
         Transcript show: ''  '', (dict at: ''name''),
             '' | methods: '', (dict at: ''methods'') printString,
             '' | loc: '', (dict at: ''loc'') printString,
             '' | CC_Total: '', (dict at: ''cc_total'') printString,
-            '' | LOC/NOM: '', (locNom printString: 2); cr.
+            '' | LOC/NOM: '', locNomStr; cr.
     ].
     stream close.
     Transcript show: ''Export complete: '', aFilePath; cr.'
