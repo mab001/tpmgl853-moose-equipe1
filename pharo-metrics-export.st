@@ -24,17 +24,25 @@ MetricsExporter compile: 'loadModelFrom: aFileReference
 !
 
 MetricsExporter compile: 'computeMetricsForClass: aClass
-    | nbMethods nbAttrs loc |
+    | nbMethods nbAttrs loc ccTotal ccAvg locPerMethod |
     nbMethods := aClass methods size.
     nbAttrs := aClass attributes size.
     loc := aClass methods inject: 0 into: [ :sum :m |
         sum + ([ m numberOfLinesOfCode ifNil: [ 0 ] ] on: Error do: [ :e | 0 ])
     ].
+    ccTotal := aClass methods inject: 0 into: [ :sum :m |
+        sum + ([ m cyclomaticComplexity ifNil: [ 1 ] ] on: Error do: [ :e | 1 ])
+    ].
+    ccAvg := nbMethods > 0 ifTrue: [ ccTotal / nbMethods ] ifFalse: [ 0 ].
+    locPerMethod := nbMethods > 0 ifTrue: [ loc / nbMethods ] ifFalse: [ 0 ].
     ^ Dictionary new
         at: ''name'' put: aClass name;
         at: ''methods'' put: nbMethods;
         at: ''attributes'' put: nbAttrs;
         at: ''loc'' put: loc;
+        at: ''cc_total'' put: ccTotal;
+        at: ''cc_avg'' put: ccAvg;
+        at: ''loc_nom'' put: locPerMethod;
         yourself.'
     classified: 'metrics'.
 !
@@ -50,20 +58,26 @@ MetricsExporter compile: 'exportToCsv: aFilePath
     | stream metrics |
     metrics := self allMetrics.
     stream := aFilePath asFileReference writeStream.
-    stream nextPutAll: ''Nom_Classe;Nb_Methodes;Nb_Attributs;Lignes_de_Code''.
+    stream nextPutAll: ''Nom_Classe;Nb_Methodes;Nb_Attributs;Lignes_de_Code;CC_Total;CC_Avg;LOC_NOM''.
     stream cr.
     metrics do: [ :dict |
-        | line |
+        | line ccAvg locNom |
+        ccAvg := [ dict at: ''cc_avg'' ] on: Error do: [ :e | 0 ].
+        locNom := [ dict at: ''loc_nom'' ] on: Error do: [ :e | 0 ].
         line := (dict at: ''name'') , '';'' ,
                 (dict at: ''methods'') printString , '';'' ,
                 (dict at: ''attributes'') printString , '';'' ,
-                (dict at: ''loc'') printString.
+                (dict at: ''loc'') printString , '';'' ,
+                (dict at: ''cc_total'') printString , '';'' ,
+                (ccAvg printString: 2) , '';'' ,
+                (locNom printString: 2).
         stream nextPutAll: line.
         stream cr.
         Transcript show: ''  '', (dict at: ''name''),
             '' | methods: '', (dict at: ''methods'') printString,
-            '' | attrs: '', (dict at: ''attributes'') printString,
-            '' | loc: '', (dict at: ''loc'') printString; cr.
+            '' | loc: '', (dict at: ''loc'') printString,
+            '' | CC_Total: '', (dict at: ''cc_total'') printString,
+            '' | LOC/NOM: '', (locNom printString: 2); cr.
     ].
     stream close.
     Transcript show: ''Export complete: '', aFilePath; cr.'

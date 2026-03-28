@@ -15,7 +15,10 @@ df = df.rename(columns={
     'Nom_Classe': 'ClassName',
     'Nb_Methodes': 'NumberOfMethods',
     'Nb_Attributs': 'NumberOfAttributes',
-    'Lignes_de_Code': 'LinesOfCode'
+    'Lignes_de_Code': 'LinesOfCode',
+    'CC_Total': 'CyclomaticTotal',
+    'CC_Avg': 'CyclomaticAvg',
+    'LOC_NOM': 'LocPerMethod'
 })
 
 # Afficher les données
@@ -99,7 +102,61 @@ for idx, class_name in enumerate(df['ClassName']):
 plt.tight_layout()
 plt.savefig('graphique_radar_metriques.png', dpi=300, bbox_inches='tight')
 print("✓ Graphique radar sauvegardé: graphique_radar_metriques.png")
+# ===== GRAPHIQUE 3: CYCLOMATIC COMPLEXITY =====
 
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# Graphique 3a: Complexité totale par classe
+categories = df['ClassName'].tolist()
+cc_total = df['CyclomaticTotal'].tolist()
+cc_avg = df['CyclomaticAvg'].tolist()
+
+x = np.arange(len(categories))
+width = 0.35
+
+bars1 = ax1.bar(x - width/2, cc_total, width, label='CC Total', color='#F59E0B', edgecolor='black', linewidth=1.2)
+bars2 = ax1.bar(x + width/2, cc_avg, width, label='CC Moyenne', color='#8B5CF6', edgecolor='black', linewidth=1.2)
+
+for bars in [bars1, bars2]:
+    for bar in bars:
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}',
+                ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+ax1.set_xlabel('Classes', fontsize=12, fontweight='bold')
+ax1.set_ylabel('Complexité Cyclomatique', fontsize=12, fontweight='bold')
+ax1.set_title('Complexité Cyclomatique par Classe', fontsize=14, fontweight='bold', pad=15)
+ax1.set_xticks(x)
+ax1.set_xticklabels(categories, fontsize=10)
+ax1.legend(fontsize=10)
+ax1.set_facecolor('#F3F4F6')
+ax1.grid(axis='y', alpha=0.3, linestyle='--')
+ax1.set_axisbelow(True)
+
+# Graphique 3b: LOC par Méthode (LOC/NOM)
+loc_nom = df['LocPerMethod'].tolist()
+
+bars = ax2.bar(categories, loc_nom, color='#06B6D4', edgecolor='black', linewidth=1.2)
+
+for bar in bars:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+            f'{height:.1f}',
+            ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+ax2.set_xlabel('Classes', fontsize=12, fontweight='bold')
+ax2.set_ylabel('LOC par Méthode', fontsize=12, fontweight='bold')
+ax2.set_title('Moyenne LOC/NOM par Classe', fontsize=14, fontweight='bold', pad=15)
+ax2.set_xticklabels(categories, fontsize=10, rotation=0)
+ax2.set_facecolor('#F3F4F6')
+ax2.grid(axis='y', alpha=0.3, linestyle='--')
+ax2.set_axisbelow(True)
+
+fig.patch.set_facecolor('white')
+plt.tight_layout()
+plt.savefig('graphique_complexite_et_loc_nom.png', dpi=300, bbox_inches='tight')
+print("✓ Graphique complexité et LOC/NOM sauvegardé: graphique_complexite_et_loc_nom.png")
 # ===== GRAPHIQUE 3: HEATMAP =====
 
 fig, ax = plt.subplots(figsize=(10, 6))
