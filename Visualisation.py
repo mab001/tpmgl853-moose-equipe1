@@ -21,6 +21,13 @@ df = df.rename(columns={
     'LOC_NOM': 'LocPerMethod'
 })
 
+# Lire le fichier method-level complexity (si disponible)
+try:
+    df_methods = pd.read_csv('export_methods_complexity.csv', sep=';')
+    print(f"✓ Methods complexity data loaded: {len(df_methods)} methods")
+except FileNotFoundError:
+    print("⚠️  export_methods_complexity.csv not found")
+
 # Afficher les données
 print(df.head(10))
 print(f"\nDimensions: {df.shape[0]} lignes, {df.shape[1]} colonnes")
@@ -102,61 +109,7 @@ for idx, class_name in enumerate(df['ClassName']):
 plt.tight_layout()
 plt.savefig('graphique_radar_metriques.png', dpi=300, bbox_inches='tight')
 print("✓ Graphique radar sauvegardé: graphique_radar_metriques.png")
-# ===== GRAPHIQUE 3: CYCLOMATIC COMPLEXITY =====
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-
-# Graphique 3a: Complexité totale par classe
-categories = df['ClassName'].tolist()
-cc_total = df['CyclomaticTotal'].tolist()
-cc_avg = df['CyclomaticAvg'].tolist()
-
-x = np.arange(len(categories))
-width = 0.35
-
-bars1 = ax1.bar(x - width/2, cc_total, width, label='CC Total', color='#F59E0B', edgecolor='black', linewidth=1.2)
-bars2 = ax1.bar(x + width/2, cc_avg, width, label='CC Moyenne', color='#8B5CF6', edgecolor='black', linewidth=1.2)
-
-for bars in [bars1, bars2]:
-    for bar in bars:
-        height = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2., height,
-                f'{height:.1f}',
-                ha='center', va='bottom', fontsize=9, fontweight='bold')
-
-ax1.set_xlabel('Classes', fontsize=12, fontweight='bold')
-ax1.set_ylabel('Complexité Cyclomatique', fontsize=12, fontweight='bold')
-ax1.set_title('Complexité Cyclomatique par Classe', fontsize=14, fontweight='bold', pad=15)
-ax1.set_xticks(x)
-ax1.set_xticklabels(categories, fontsize=10)
-ax1.legend(fontsize=10)
-ax1.set_facecolor('#F3F4F6')
-ax1.grid(axis='y', alpha=0.3, linestyle='--')
-ax1.set_axisbelow(True)
-
-# Graphique 3b: LOC par Méthode (LOC/NOM)
-loc_nom = df['LocPerMethod'].tolist()
-
-bars = ax2.bar(categories, loc_nom, color='#06B6D4', edgecolor='black', linewidth=1.2)
-
-for bar in bars:
-    height = bar.get_height()
-    ax2.text(bar.get_x() + bar.get_width()/2., height,
-            f'{height:.1f}',
-            ha='center', va='bottom', fontsize=10, fontweight='bold')
-
-ax2.set_xlabel('Classes', fontsize=12, fontweight='bold')
-ax2.set_ylabel('LOC par Méthode', fontsize=12, fontweight='bold')
-ax2.set_title('Moyenne LOC/NOM par Classe', fontsize=14, fontweight='bold', pad=15)
-ax2.set_xticklabels(categories, fontsize=10, rotation=0)
-ax2.set_facecolor('#F3F4F6')
-ax2.grid(axis='y', alpha=0.3, linestyle='--')
-ax2.set_axisbelow(True)
-
-fig.patch.set_facecolor('white')
-plt.tight_layout()
-plt.savefig('graphique_complexite_et_loc_nom.png', dpi=300, bbox_inches='tight')
-print("✓ Graphique complexité et LOC/NOM sauvegardé: graphique_complexite_et_loc_nom.png")
 # ===== GRAPHIQUE 3: HEATMAP =====
 
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -210,5 +163,83 @@ ax.legend(scatterpoints=1, loc='upper left', fontsize=10)
 plt.tight_layout()
 plt.savefig('graphique_complexite_vs_taille.png', dpi=300, bbox_inches='tight')
 print("✓ Graphique complexité vs taille sauvegardé: graphique_complexite_vs_taille.png")
+
+# ===== GRAPHIQUE 5: COMPLEXITÉ DES MÉTHODES PAR CLASSE =====
+
+if 'df_methods' in locals():
+    # Get top 15 most complex methods
+    df_methods_top = df_methods.nlargest(15, 'Complexity')[['ClassName', 'MethodName', 'Complexity', 'LOC']].copy()
+    df_methods_top['Label'] = df_methods_top['ClassName'].astype(str) + '.' + df_methods_top['MethodName'].astype(str)
+    
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    colors_by_class = {}
+    class_palette = sns.color_palette('husl', len(df_methods_top['ClassName'].unique()))
+    for idx, class_name in enumerate(df_methods_top['ClassName'].unique()):
+        colors_by_class[class_name] = class_palette[idx]
+    
+    bar_colors = [colors_by_class[cn] for cn in df_methods_top['ClassName']]
+    
+    bars = ax.barh(range(len(df_methods_top)), df_methods_top['Complexity'], color=bar_colors, edgecolor='black', linewidth=1.2)
+    
+    for i, (idx, row) in enumerate(df_methods_top.iterrows()):
+        ax.text(row['Complexity'] + 0.1, i, f'CC={int(row["Complexity"])} LOC={int(row["LOC"])}', 
+                va='center', fontsize=9, fontweight='bold')
+    
+    ax.set_yticks(range(len(df_methods_top)))
+    ax.set_yticklabels(df_methods_top['Label'], fontsize=10)
+    ax.set_xlabel('Cyclomatic Complexity', fontsize=12, fontweight='bold')
+    ax.set_title('Top 15 des méthodes les plus complexes', fontsize=16, fontweight='bold', pad=20)
+    ax.set_facecolor('#F9FAFB')
+    fig.patch.set_facecolor('white')
+    ax.grid(axis='x', alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+    
+    # Add legend for classes
+    from matplotlib.patches import Patch
+    legend_elements = [Patch(facecolor=colors_by_class[cn], edgecolor='black', label=cn) 
+                       for cn in sorted(colors_by_class.keys())]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=10, title='Classe')
+    
+    plt.tight_layout()
+    plt.savefig('graphique_complexite_methodes.png', dpi=300, bbox_inches='tight')
+    print("✓ Graphique complexité des méthodes sauvegardé: graphique_complexite_methodes.png")
+    
+    # ===== SOUS-GRAPHIQUE: COMPLEXITÉ PAR CLASSE =====
+    
+    fig, axes = plt.subplots(1, len(df), figsize=(6 * len(df), 5))
+    if len(df) == 1:
+        axes = [axes]
+    
+    for ax_idx, class_name in enumerate(df['ClassName']):
+        ax = axes[ax_idx]
+        
+        # Filter methods for this class
+        class_methods = df_methods[df_methods['ClassName'] == class_name].copy()
+        class_methods = class_methods.sort_values('Complexity', ascending=True)
+        
+        if len(class_methods) > 0:
+            colors_complexity = ['#EF4444' if cc > 5 else '#F59E0B' if cc > 2 else '#10B981' 
+                                for cc in class_methods['Complexity']]
+            
+            bars = ax.barh(range(len(class_methods)), class_methods['Complexity'], 
+                           color=colors_complexity, edgecolor='black', linewidth=1)
+            
+            for i, (idx, row) in enumerate(class_methods.iterrows()):
+                ax.text(row['Complexity'] + 0.05, i, f'{int(row["Complexity"])}', 
+                        va='center', fontsize=8, fontweight='bold')
+            
+            ax.set_yticks(range(len(class_methods)))
+            ax.set_yticklabels(class_methods['MethodName'], fontsize=9)
+            ax.set_xlabel('Cyclomatic Complexity', fontsize=10, fontweight='bold')
+            ax.set_title(f'{class_name}\n({len(class_methods)} méthodes)', fontsize=12, fontweight='bold')
+            ax.set_facecolor('#F9FAFB')
+            ax.grid(axis='x', alpha=0.3, linestyle='--')
+            ax.set_xlim(0, max(class_methods['Complexity'].max() * 1.2, 2))
+    
+    fig.patch.set_facecolor('white')
+    plt.tight_layout()
+    plt.savefig('graphique_complexite_par_classe.png', dpi=300, bbox_inches='tight')
+    print("✓ Graphique complexité par classe sauvegardé: graphique_complexite_par_classe.png")
 
 print("\n✓ Tous les graphiques ont été générés en PNG!")

@@ -99,6 +99,29 @@ MetricsExporter compile: 'printSummary
     classified: 'printing'.
 !
 
+MetricsExporter compile: 'exportMethodsComplexityToCsv: aFilePath
+    | stream allMethods |
+    allMethods := model allWithType: FamixTypeScriptMethod.
+    stream := aFilePath asFileReference writeStream.
+    stream nextPutAll: ''ClassName;MethodName;Complexity;LOC''.
+    stream cr.
+    (allMethods sorted: [ :a :b | 
+        ([ a cyclomaticComplexity ifNil: [ 1 ] ] on: Error do: [ :e | 1 ]) >
+        ([ b cyclomaticComplexity ifNil: [ 1 ] ] on: Error do: [ :e | 1 ])
+    ]) do: [ :method |
+        | className cc loc |
+        className := [ method parentType name ] on: Error do: [ :e | ''Unknown'' ].
+        cc := [ method cyclomaticComplexity ifNil: [ 1 ] ] on: Error do: [ :e | 1 ].
+        loc := [ method numberOfLinesOfCode ifNil: [ 0 ] ] on: Error do: [ :e | 0 ].
+        stream nextPutAll: className , '';'' , method name , '';'' , cc printString , '';'' , loc printString.
+        stream cr.
+        Transcript show: ''  '', className, '' > '', method name, '' | CC: '', cc printString, '' | LOC: '', loc printString; cr.
+    ].
+    stream close.
+    Transcript show: ''Method complexity export complete: '', aFilePath; cr.'
+    classified: 'export'.
+!
+
 "============================================================"
 "--- 3. Utiliser la classe MetricsExporter ---"
 "============================================================"
@@ -117,5 +140,6 @@ Transcript show: 'Model file: ', modelFile fullName; cr.
 exporter := MetricsExporter new.
 exporter loadModelFrom: modelFile.
 exporter exportToCsv: './export_metrics.csv'.
+exporter exportMethodsComplexityToCsv: './export_methods_complexity.csv'.
 exporter printSummary.
 !
