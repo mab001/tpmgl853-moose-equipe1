@@ -127,13 +127,13 @@ MetricsExporter compile: 'exportMethodsComplexityToCsv: aFilePath
 "============================================================"
 | modelFile exporter wsPath |
 "Now load the updated model"
-modelFile := './tp2-notes-app.json' asFileReference.
+modelFile := './tp3-notes-app.json' asFileReference.
 modelFile exists ifFalse: [
     wsPath := Smalltalk os environment at: 'GITHUB_WORKSPACE' ifAbsent: [ '.' ].
-    modelFile := (wsPath , '/tp2-notes-app.json') asFileReference.
+    modelFile := (wsPath , '/tp3-notes-app.json') asFileReference.
 ].
 modelFile exists ifFalse: [
-    modelFile := FileLocator workingDirectory / 'tp2-notes-app.json'.
+    modelFile := FileLocator workingDirectory / 'tp3-notes-app.json'.
 ].
 Transcript show: '=== MGL843 Moose Metrics Export ==='; cr.
 Transcript show: 'Model file: ', modelFile fullName; cr.
